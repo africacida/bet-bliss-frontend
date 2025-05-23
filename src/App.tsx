@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,12 +9,18 @@ import { GameProvider } from "@/contexts/GameContext";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import Dashboard from "@/pages/Dashboard";
-import JackpotGame from "@/pages/JackpotGame";
-import LuckyDraw from "@/pages/LuckyDraw";
-import Wallet from "@/pages/Wallet";
+import JackpotPage from "@/pages/JackpotPage";
+import LuckyDrawPage from "@/pages/LuckyDrawPage";
+import WalletPage from "@/pages/WalletPage";
+import MyTicketsPage from "@/pages/MyTicketsPage";
+import LuckyHistoryPage from "@/pages/LuckyHistoryPage";
+import ProfilePage from "@/pages/ProfilePage";
+import NotificationsPage from "@/pages/NotificationsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboardMain from "@/pages/admin/AdminDashboardMain";
@@ -40,12 +47,18 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Layout />}>
       <Route index element={<Home />} />
-      <Route path="login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
       <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="jackpot" element={<ProtectedRoute><JackpotGame /></ProtectedRoute>} />
-      <Route path="lucky-draw" element={<ProtectedRoute><LuckyDraw /></ProtectedRoute>} />
-      <Route path="wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+      <Route path="jackpot" element={<ProtectedRoute><JackpotPage /></ProtectedRoute>} />
+      <Route path="lucky-draw" element={<ProtectedRoute><LuckyDrawPage /></ProtectedRoute>} />
+      <Route path="wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
+      <Route path="my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
+      <Route path="lucky-history" element={<ProtectedRoute><LuckyHistoryPage /></ProtectedRoute>} />
+      <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Route>
     

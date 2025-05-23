@@ -3,15 +3,12 @@ import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import NotificationBell from '@/components/NotificationBell';
+import UserDropdownMenu from '@/components/UserDropdownMenu';
 
 const Layout = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -25,8 +22,8 @@ const Layout = () => {
               <span className="text-white text-xl font-bold">BetBliss</span>
             </Link>
             
-            {isAuthenticated && (
-              <div className="flex items-center space-x-4">
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-6">
                 <Link to="/dashboard" className="text-white hover:text-green-400 transition-colors">
                   Dashboard
                 </Link>
@@ -39,17 +36,27 @@ const Layout = () => {
                 <Link to="/wallet" className="text-white hover:text-green-400 transition-colors">
                   Wallet
                 </Link>
-                {user?.isAdmin && (
-                  <Link to="/admin" className="text-orange-400 hover:text-orange-300 transition-colors">
-                    Admin
-                  </Link>
-                )}
+                <Link to="/my-tickets" className="text-white hover:text-green-400 transition-colors">
+                  My Tickets
+                </Link>
                 <div className="text-green-400 font-semibold">
                   ₵{user?.balance.toFixed(2)}
                 </div>
-                <Button onClick={handleLogout} variant="outline" size="sm">
-                  Logout
-                </Button>
+                <NotificationBell />
+                <UserDropdownMenu />
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Link to="/login">
+                  <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button size="sm" className="bg-green-500 hover:bg-green-600">
+                    Sign Up
+                  </Button>
+                </Link>
               </div>
             )}
           </div>
