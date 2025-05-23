@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { layout_dashboard, users, settings, zap, trending_up, file_text, calendar_days } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, Zap, TrendingUp, FileText, CalendarDays } from 'lucide-react';
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -17,13 +16,13 @@ const AdminLayout = () => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: layout_dashboard },
-    { name: 'Jackpot Manager', href: '/admin/jackpot', icon: zap },
-    { name: 'Lucky Draw Manager', href: '/admin/lucky-draw', icon: trending_up },
-    { name: 'Users', href: '/admin/users', icon: users },
-    { name: 'Transactions', href: '/admin/transactions', icon: file_text },
-    { name: 'Reports', href: '/admin/reports', icon: trending_up },
-    { name: 'Settings', href: '/admin/settings', icon: settings },
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Jackpot Manager', href: '/admin/jackpot', icon: Zap },
+    { name: 'Lucky Draw Manager', href: '/admin/lucky-draw', icon: TrendingUp },
+    { name: 'Users', href: '/admin/users', icon: Users },
+    { name: 'Transactions', href: '/admin/transactions', icon: FileText },
+    { name: 'Reports', href: '/admin/reports', icon: TrendingUp },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   const isActive = (path: string) => {
