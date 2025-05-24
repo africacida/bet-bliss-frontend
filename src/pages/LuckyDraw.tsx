@@ -1,22 +1,39 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGame } from '@/contexts/GameContext';
+import { useDemoGame } from '@/contexts/DemoGameContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import CountdownTimer from '@/components/CountdownTimer';
+import LuckyDrawResultModal from '@/components/LuckyDrawResultModal';
 import { toast } from '@/hooks/use-toast';
 
 const LuckyDraw = () => {
   const [selectedItem, setSelectedItem] = useState<string>('');
-  const { user, updateBalance } = useAuth();
-  const { luckyDrawEntries, addLuckyDrawEntry, nextDrawTime } = useGame();
+  const [showResult, setShowResult] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
+  const { user } = useAuth();
+  const { 
+    luckyDrawEntries, 
+    placeLuckyDrawBet, 
+    balance, 
+    isProcessing,
+    nextDrawTime 
+  } = useDemoGame();
   
   const entryPrice = 2;
-  const availableItems = ['🍎', '🍌', '🍇', '🍒', '🥝', '🍊', '🥭', '🍓'];
-  const lastWinner = { item: '🍇', winner: 'Alex M.', time: '14:29' };
+  const availableItems = [
+    { emoji: '🍎', name: 'Apple', odds: '1:4 (4x)', payout: 8 },
+    { emoji: '🍌', name: 'Banana', odds: '1:5 (5x)', payout: 10 },
+    { emoji: '🍇', name: 'Grapes', odds: '1:6 (6x)', payout: 12 },
+    { emoji: '🍒', name: 'Cherry', odds: '1:8 (8x)', payout: 16 },
+    { emoji: '🥝', name: 'Kiwi', odds: '1:10 (10x)', payout: 20 },
+    { emoji: '🍊', name: 'Orange', odds: '1:12 (12x)', payout: 24 },
+    { emoji: '🥭', name: 'Mango', odds: '1:15 (15x)', payout: 30 },
+    { emoji: '🍓', name: 'Strawberry', odds: '1:20 (20x)', payout: 40 }
+  ];
 
-  const handleJoinDraw = () => {
+  const handleJoinDraw = async () => {
     if (!selectedItem) {
       toast({
         title: "No Selection",
@@ -26,18 +43,50 @@ const LuckyDraw = () => {
       return;
     }
 
-    if (user && user.balance >= entryPrice) {
-      addLuckyDrawEntry(selectedItem);
-      updateBalance(-entryPrice);
-      setSelectedItem('');
-      toast({
-        title: "Entry Submitted!",
-        description: `You've joined the next draw with ${selectedItem} for ₵${entryPrice}.`,
-      });
-    } else {
+    if (balance < entryPrice) {
       toast({
         title: "Insufficient Balance",
         description: "Please add funds to your wallet.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Drawing...",
+      description: "Your entry has been submitted. Drawing in progress...",
+    });
+
+    try {
+      const { entry, isWinner } = await placeLuckyDrawBet(selectedItem);
+      
+      setLastResult({
+        selectedItem: entry.selectedItem,
+        winningItem: entry.winningItem,
+        payout: entry.payout,
+        isWinner,
+        multiplier: entry.multiplier
+      });
+      
+      setShowResult(true);
+      setSelectedItem('');
+      
+      if (isWinner) {
+        toast({
+          title: "🎉 You Won!",
+          description: `${selectedItem} was drawn! You won ₵${entry.payout}!`,
+        });
+      } else {
+        toast({
+          title: "Not this time!",
+          description: `${entry.winningItem} was drawn. Better luck next time!`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
     }
@@ -61,9 +110,10 @@ const LuckyDraw = () => {
             <CardContent className="text-gray-300">
               <ol className="list-decimal list-inside space-y-2">
                 <li>Choose your lucky item from the selection below</li>
-                <li>Pay ₵2 to join the next draw</li>
-                <li>Wait for the countdown to reach zero</li>
-                <li>If your item is drawn, you win ₵10!</li>
+                <li>Pay ₵2 to join the instant draw</li>
+                <li>Watch the draw happen in real-time</li>
+                <li>If your item is drawn, you win based on the multiplier!</li>
+                <li>Higher payouts have lower odds - choose wisely!</li>
               </ol>
             </CardContent>
           </Card>
@@ -74,20 +124,23 @@ const LuckyDraw = () => {
               <CardTitle className="text-white">Choose Your Lucky Item</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 md:grid-cols-8 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {availableItems.map((item) => (
                   <button
-                    key={item}
-                    onClick={() => setSelectedItem(item)}
+                    key={item.emoji}
+                    onClick={() => setSelectedItem(item.emoji)}
                     className={`
-                      w-16 h-16 rounded-lg text-3xl transition-all duration-200 transform hover:scale-110
-                      ${selectedItem === item
+                      p-4 rounded-lg text-center transition-all duration-200 transform hover:scale-105
+                      ${selectedItem === item.emoji
                         ? 'bg-gradient-to-r from-green-400 to-blue-500 shadow-lg'
                         : 'bg-white/10 hover:bg-white/20'
                       }
                     `}
                   >
-                    {item}
+                    <div className="text-4xl mb-2">{item.emoji}</div>
+                    <div className="text-white font-semibold text-sm">{item.name}</div>
+                    <div className="text-white/70 text-xs">{item.odds}</div>
+                    <div className="text-green-400 text-xs font-semibold">Win: ₵{item.payout}</div>
                   </button>
                 ))}
               </div>
@@ -95,21 +148,23 @@ const LuckyDraw = () => {
               {selectedItem && (
                 <div className="bg-white/10 rounded-lg p-4 mb-4">
                   <p className="text-white font-semibold">Selected: {selectedItem}</p>
+                  <p className="text-green-400 text-sm">
+                    Win: ₵{availableItems.find(item => item.emoji === selectedItem)?.payout}
+                  </p>
                 </div>
               )}
               
               <div className="flex justify-between items-center">
                 <div className="text-white">
                   <p className="text-lg font-semibold">Entry Price: ₵{entryPrice}</p>
-                  <p className="text-sm text-gray-400">Your Balance: ₵{user?.balance.toFixed(2)}</p>
-                  <p className="text-sm text-green-400">Win: ₵10</p>
+                  <p className="text-sm text-gray-400">Your Balance: ₵{balance.toFixed(2)}</p>
                 </div>
                 <Button
                   onClick={handleJoinDraw}
-                  disabled={!selectedItem || (user?.balance || 0) < entryPrice}
+                  disabled={!selectedItem || balance < entryPrice || isProcessing}
                   className="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 disabled:opacity-50"
                 >
-                  Join Draw
+                  {isProcessing ? 'Drawing...' : 'Join Draw'}
                 </Button>
               </div>
             </CardContent>
@@ -124,42 +179,52 @@ const LuckyDraw = () => {
             onComplete={() => window.location.reload()}
           />
 
-          {/* Last Draw Result */}
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 border-none">
-            <CardContent className="p-6 text-center">
-              <h3 className="text-white text-lg font-semibold mb-2">Last Draw Result</h3>
-              <div className="text-4xl mb-2">{lastWinner.item}</div>
-              <p className="text-white font-semibold">{lastWinner.winner} won!</p>
-              <p className="text-white/80 text-sm">at {lastWinner.time}</p>
-            </CardContent>
-          </Card>
-
           {/* Statistics */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Today's Stats</CardTitle>
+              <CardTitle className="text-white text-lg">Your Stats</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-300">Total Draws:</span>
-                  <span className="text-white">847</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Your Entries:</span>
+                  <span className="text-gray-300">Total Entries:</span>
                   <span className="text-white">{luckyDrawEntries.length}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-gray-300">Wins:</span>
+                  <span className="text-green-400">
+                    {luckyDrawEntries.filter(e => e.result === 'won').length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-300">Win Rate:</span>
-                  <span className="text-green-400">12.5%</span>
+                  <span className="text-green-400">
+                    {luckyDrawEntries.length > 0 
+                      ? Math.round((luckyDrawEntries.filter(e => e.result === 'won').length / luckyDrawEntries.length) * 100)
+                      : 0}%
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Last Winner */}
+          {luckyDrawEntries.length > 0 && luckyDrawEntries[0].result === 'won' && (
+            <Card className="bg-gradient-to-r from-purple-600 to-pink-600 border-none">
+              <CardContent className="p-6 text-center">
+                <h3 className="text-white text-lg font-semibold mb-2">Your Last Win!</h3>
+                <div className="text-4xl mb-2">{luckyDrawEntries[0].selectedItem}</div>
+                <p className="text-white font-semibold">₵{luckyDrawEntries[0].payout}</p>
+                <p className="text-white/80 text-sm">
+                  {new Date(luckyDrawEntries[0].drawTime).toLocaleTimeString()}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* My Entries */}
+      {/* My Recent Entries */}
       <div className="mt-8">
         <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardHeader>
@@ -170,20 +235,23 @@ const LuckyDraw = () => {
               {luckyDrawEntries.slice(0, 6).map((entry) => (
                 <div key={entry.id} className="bg-white/5 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-3xl">{entry.item}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{entry.selectedItem}</span>
+                      <span className="text-white/50">→</span>
+                      <span className="text-2xl">{entry.winningItem}</span>
+                    </div>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      entry.result === 'pending' ? 'bg-yellow-600 text-yellow-100' :
                       entry.result === 'won' ? 'bg-green-600 text-green-100' :
                       'bg-red-600 text-red-100'
                     }`}>
-                      {entry.result}
+                      {entry.result === 'won' ? `+₵${entry.payout}` : 'Lost'}
                     </span>
                   </div>
                   <div className="text-xs text-gray-400">
                     <p>Draw: {entry.drawTime}</p>
                     <p>Entry: ₵{entry.price}</p>
-                    {entry.winningItem && (
-                      <p>Winner: {entry.winningItem}</p>
+                    {entry.result === 'won' && (
+                      <p className="text-green-400">{entry.multiplier} multiplier</p>
                     )}
                   </div>
                 </div>
@@ -197,6 +265,12 @@ const LuckyDraw = () => {
           </CardContent>
         </Card>
       </div>
+
+      <LuckyDrawResultModal
+        isOpen={showResult}
+        onClose={() => setShowResult(false)}
+        result={lastResult}
+      />
     </div>
   );
 };
