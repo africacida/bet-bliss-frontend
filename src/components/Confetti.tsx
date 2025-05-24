@@ -31,21 +31,23 @@ const Confetti = ({ show, duration = 3000 }: ConfettiProps) => {
   if (!show || pieces.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      {pieces.map((piece) => (
-        <div
-          key={piece.id}
-          className="absolute w-3 h-3 animate-pulse"
-          style={{
-            left: `${piece.x}%`,
-            top: `${piece.y}%`,
-            backgroundColor: piece.color,
-            transform: `rotate(${piece.rotation}deg)`,
-            animation: `fall ${duration}ms linear forwards`
-          }}
-        />
-      ))}
-      <style jsx>{`
+    <>
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        {pieces.map((piece) => (
+          <div
+            key={piece.id}
+            className="absolute w-3 h-3 animate-pulse confetti-piece"
+            style={{
+              left: `${piece.x}%`,
+              top: `${piece.y}%`,
+              backgroundColor: piece.color,
+              transform: `rotate(${piece.rotation}deg)`,
+              animation: `fall ${duration}ms linear forwards`
+            }}
+          />
+        ))}
+      </div>
+      <style>{`
         @keyframes fall {
           to {
             transform: translateY(100vh) rotate(720deg);
@@ -53,7 +55,7 @@ const Confetti = ({ show, duration = 3000 }: ConfettiProps) => {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 };
 
