@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface JackpotTicket {
@@ -11,6 +10,7 @@ interface JackpotTicket {
   matchCount: number;
   payout: number;
   purchaseTime: string;
+  multiplier: number;
 }
 
 interface LuckyDrawEntry {
@@ -39,7 +39,7 @@ interface DemoGameContextType {
   transactions: Transaction[];
   balance: number;
   isProcessing: boolean;
-  buyJackpotTicket: (numbers: number[]) => Promise<{ ticket: JackpotTicket; isWinner: boolean }>;
+  buyJackpotTicket: (numbers: number[], multiplier?: number) => Promise<{ ticket: JackpotTicket; isWinner: boolean }>;
   placeLuckyDrawBet: (item: string) => Promise<{ entry: LuckyDrawEntry; isWinner: boolean }>;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'status'>) => void;
   updateBalance: (amount: number) => void;
@@ -57,14 +57,18 @@ export const useDemoGame = () => {
 };
 
 // Jackpot payout structure based on matches
-const getJackpotPayout = (matches: number): number => {
-  switch (matches) {
-    case 5: return 50000; // Jackpot
-    case 4: return 1000;
-    case 3: return 50;
-    case 2: return 10;
-    default: return 0;
-  }
+const getJackpotPayout = (matches: number, multiplier: number = 1): number => {
+  const basePayout = (() => {
+    switch (matches) {
+      case 6: return 50000; // Jackpot
+      case 5: return 1000;
+      case 4: return 50;
+      case 3: return 10;
+      case 2: return 5;
+      default: return 0;
+    }
+  })();
+  return basePayout * multiplier;
 };
 
 // Lucky draw items with different odds and multipliers
@@ -130,8 +134,8 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
 
   const generateWinningNumbers = (): number[] => {
     const numbers = new Set<number>();
-    while (numbers.size < 5) {
-      numbers.add(Math.floor(Math.random() * 40) + 1);
+    while (numbers.size < 6) {
+      numbers.add(Math.floor(Math.random() * 49) + 1);
     }
     return Array.from(numbers).sort((a, b) => a - b);
   };
@@ -154,7 +158,7 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
     return luckyDrawItems[0].emoji; // Fallback
   };
 
-  const buyJackpotTicket = async (numbers: number[]): Promise<{ ticket: JackpotTicket; isWinner: boolean }> => {
+  const buyJackpotTicket = async (numbers: number[], multiplier: number = 1): Promise<{ ticket: JackpotTicket; isWinner: boolean }> => {
     setIsProcessing(true);
     
     // Simulate processing delay
@@ -162,29 +166,31 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
     
     const winningNumbers = generateWinningNumbers();
     const matchCount = countMatches(numbers, winningNumbers);
-    const payout = getJackpotPayout(matchCount);
+    const payout = getJackpotPayout(matchCount, multiplier);
     const isWinner = payout > 0;
+    const ticketPrice = 5 * multiplier;
     
     const ticket: JackpotTicket = {
       id: Date.now().toString(),
       numbers: [...numbers].sort((a, b) => a - b),
       winningNumbers,
       drawDate: new Date().toISOString().split('T')[0],
-      price: 5,
+      price: ticketPrice,
       status: isWinner ? 'won' : 'lost',
       matchCount,
       payout,
-      purchaseTime: new Date().toISOString()
+      purchaseTime: new Date().toISOString(),
+      multiplier
     };
 
     setJackpotTickets(prev => [ticket, ...prev]);
     
     // Update balance and transactions
-    updateBalance(-5); // Deduct ticket price
+    updateBalance(-ticketPrice); // Deduct ticket price
     addTransaction({
       type: 'bet',
-      amount: 5,
-      description: 'Jackpot Ticket Purchase'
+      amount: ticketPrice,
+      description: `Jackpot Ticket Purchase (${multiplier}x)`
     });
 
     if (isWinner) {
@@ -192,7 +198,7 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
       addTransaction({
         type: 'win',
         amount: payout,
-        description: `Jackpot Win - ${matchCount} matches`
+        description: `Jackpot Win - ${matchCount} matches (${multiplier}x)`
       });
     }
 

@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 
 const JackpotGame = () => {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
+  const [selectedMultiplier, setSelectedMultiplier] = useState<number>(1);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
   const { user } = useAuth();
@@ -22,7 +23,16 @@ const JackpotGame = () => {
     nextDrawTime 
   } = useDemoGame();
   
-  const ticketPrice = 5;
+  const baseTicketPrice = 5;
+  const ticketPrice = baseTicketPrice * selectedMultiplier;
+
+  const multiplierOptions = [
+    { value: 1, label: '1x', color: 'from-gray-500 to-gray-600' },
+    { value: 2, label: '2x', color: 'from-blue-500 to-blue-600' },
+    { value: 3, label: '3x', color: 'from-green-500 to-green-600' },
+    { value: 5, label: '5x', color: 'from-yellow-500 to-yellow-600' },
+    { value: 10, label: '10x', color: 'from-red-500 to-red-600' }
+  ];
 
   const handleBuyTicket = async () => {
     if (selectedNumbers.length !== 6) {
@@ -49,14 +59,15 @@ const JackpotGame = () => {
     });
 
     try {
-      const { ticket, isWinner } = await buyJackpotTicket(selectedNumbers);
+      const { ticket, isWinner } = await buyJackpotTicket(selectedNumbers, selectedMultiplier);
       
       setLastResult({
         numbers: ticket.numbers,
         winningNumbers: ticket.winningNumbers,
         matchCount: ticket.matchCount,
         payout: ticket.payout,
-        isWinner
+        isWinner,
+        multiplier: ticket.multiplier
       });
       
       setShowResult(true);
@@ -65,7 +76,7 @@ const JackpotGame = () => {
       if (isWinner) {
         toast({
           title: "🎉 Congratulations!",
-          description: `You won ₵${ticket.payout} with ${ticket.matchCount} matches!`,
+          description: `You won ₵${ticket.payout} with ${ticket.matchCount} matches (${selectedMultiplier}x)!`,
         });
       } else {
         toast({
@@ -120,18 +131,49 @@ const JackpotGame = () => {
                 maxNumbers={6}
                 maxValue={49}
               />
+
+              {/* Multiplier Selection */}
+              <div className="mt-6">
+                <h4 className="text-white text-lg font-semibold mb-3">Choose Multiplier</h4>
+                <div className="grid grid-cols-5 gap-3">
+                  {multiplierOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSelectedMultiplier(option.value)}
+                      className={`
+                        p-3 rounded-lg transition-all duration-200 transform hover:scale-105
+                        ${selectedMultiplier === option.value
+                          ? `bg-gradient-to-r ${option.color} text-white shadow-lg border-2 border-white/50`
+                          : 'bg-white/10 text-white border-2 border-transparent hover:bg-white/20'
+                        }
+                      `}
+                    >
+                      <div className="font-bold text-lg">{option.label}</div>
+                      <div className="text-xs">₵{baseTicketPrice * option.value}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-gray-300 text-sm mt-2">
+                  Higher multipliers increase both ticket cost and potential winnings!
+                </p>
+              </div>
               
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-white">
                   <p className="text-lg font-semibold">Ticket Price: ₵{ticketPrice}</p>
                   <p className="text-sm text-gray-400">Your Balance: ₵{balance.toFixed(2)}</p>
+                  {selectedMultiplier > 1 && (
+                    <p className="text-sm text-green-400">
+                      Potential max win: ₵{(50000 * selectedMultiplier).toLocaleString()}
+                    </p>
+                  )}
                 </div>
                 <Button
                   onClick={handleBuyTicket}
                   disabled={selectedNumbers.length !== 6 || balance < ticketPrice || isProcessing}
                   className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 disabled:opacity-50"
                 >
-                  {isProcessing ? 'Processing...' : 'Buy Ticket'}
+                  {isProcessing ? 'Processing...' : `Buy Ticket (${selectedMultiplier}x)`}
                 </Button>
               </div>
             </CardContent>
@@ -189,12 +231,19 @@ const JackpotGame = () => {
                     <span className="text-sm text-gray-400">
                       {new Date(ticket.purchaseTime).toLocaleDateString()}
                     </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      ticket.status === 'won' ? 'bg-green-600 text-green-100' :
-                      'bg-red-600 text-red-100'
-                    }`}>
-                      {ticket.status === 'won' ? `Won ₵${ticket.payout}` : 'No win'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        ticket.status === 'won' ? 'bg-green-600 text-green-100' :
+                        'bg-red-600 text-red-100'
+                      }`}>
+                        {ticket.status === 'won' ? `Won ₵${ticket.payout}` : 'No win'}
+                      </span>
+                      {ticket.multiplier > 1 && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-purple-600 text-purple-100">
+                          {ticket.multiplier}x
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-6 gap-1 mb-2">
                     {ticket.numbers.map((num) => (

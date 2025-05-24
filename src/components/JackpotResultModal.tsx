@@ -10,6 +10,7 @@ interface JackpotResult {
   matchCount: number;
   payout: number;
   isWinner: boolean;
+  multiplier?: number;
 }
 
 interface JackpotResultModalProps {
@@ -21,14 +22,23 @@ interface JackpotResultModalProps {
 const JackpotResultModal = ({ isOpen, onClose, result }: JackpotResultModalProps) => {
   if (!result) return null;
 
-  const getMatchMessage = (matches: number) => {
-    switch (matches) {
-      case 5: return "🎉 JACKPOT! All 5 numbers match!";
-      case 4: return "🎊 Amazing! 4 numbers match!";
-      case 3: return "🎈 Great! 3 numbers match!";
-      case 2: return "👏 Nice! 2 numbers match!";
-      default: return "😔 No matches this time. Try again!";
+  const getMatchMessage = (matches: number, multiplier: number = 1) => {
+    const baseMessage = (() => {
+      switch (matches) {
+        case 6: return "🎉 JACKPOT! All 6 numbers match!";
+        case 5: return "🎊 Amazing! 5 numbers match!";
+        case 4: return "🎈 Great! 4 numbers match!";
+        case 3: return "👏 Nice! 3 numbers match!";
+        case 2: return "👍 Good! 2 numbers match!";
+        default: return "😔 No matches this time. Try again!";
+      }
+    })();
+    
+    if (multiplier > 1 && matches > 0) {
+      return `${baseMessage} (${multiplier}x multiplier applied!)`;
     }
+    
+    return baseMessage;
   };
 
   return (
@@ -45,12 +55,17 @@ const JackpotResultModal = ({ isOpen, onClose, result }: JackpotResultModalProps
           <div className="space-y-6 py-4">
             <div className="text-center">
               <div className={`text-lg font-semibold mb-4 ${result.isWinner ? 'text-green-400' : 'text-white'}`}>
-                {getMatchMessage(result.matchCount)}
+                {getMatchMessage(result.matchCount, result.multiplier)}
               </div>
               
               {result.isWinner && (
                 <div className="text-3xl font-bold text-green-400 mb-4">
                   You won ₵{result.payout}!
+                  {result.multiplier && result.multiplier > 1 && (
+                    <div className="text-sm text-purple-400 mt-1">
+                      {result.multiplier}x multiplier boost!
+                    </div>
+                  )}
                 </div>
               )}
             </div>
