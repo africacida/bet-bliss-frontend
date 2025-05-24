@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 
 const LuckyDraw = () => {
   const [selectedItem, setSelectedItem] = useState<string>('');
+  const [selectedMultiplier, setSelectedMultiplier] = useState(1);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
   const { user } = useAuth();
@@ -21,17 +22,21 @@ const LuckyDraw = () => {
     nextDrawTime 
   } = useDemoGame();
   
-  const entryPrice = 2;
+  const baseEntryPrice = 2;
+  const entryPrice = baseEntryPrice * selectedMultiplier;
+  
   const availableItems = [
-    { emoji: '🍎', name: 'Apple', odds: '1:4 (4x)', payout: 8 },
-    { emoji: '🍌', name: 'Banana', odds: '1:5 (5x)', payout: 10 },
-    { emoji: '🍇', name: 'Grapes', odds: '1:6 (6x)', payout: 12 },
-    { emoji: '🍒', name: 'Cherry', odds: '1:8 (8x)', payout: 16 },
-    { emoji: '🥝', name: 'Kiwi', odds: '1:10 (10x)', payout: 20 },
-    { emoji: '🍊', name: 'Orange', odds: '1:12 (12x)', payout: 24 },
-    { emoji: '🥭', name: 'Mango', odds: '1:15 (15x)', payout: 30 },
-    { emoji: '🍓', name: 'Strawberry', odds: '1:20 (20x)', payout: 40 }
+    { emoji: '🍎', name: 'Apple', odds: '1:4 (4x)', basePayout: 8 },
+    { emoji: '🍌', name: 'Banana', odds: '1:5 (5x)', basePayout: 10 },
+    { emoji: '🍇', name: 'Grapes', odds: '1:6 (6x)', basePayout: 12 },
+    { emoji: '🍒', name: 'Cherry', odds: '1:8 (8x)', basePayout: 16 },
+    { emoji: '🥝', name: 'Kiwi', odds: '1:10 (10x)', basePayout: 20 },
+    { emoji: '🍊', name: 'Orange', odds: '1:12 (12x)', basePayout: 24 },
+    { emoji: '🥭', name: 'Mango', odds: '1:15 (15x)', basePayout: 30 },
+    { emoji: '🍓', name: 'Strawberry', odds: '1:20 (20x)', basePayout: 40 }
   ];
+
+  const multiplierOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const handleJoinDraw = async () => {
     if (!selectedItem) {
@@ -54,11 +59,11 @@ const LuckyDraw = () => {
 
     toast({
       title: "Drawing...",
-      description: "Your entry has been submitted. Drawing in progress...",
+      description: `Your ${selectedMultiplier}x entry has been submitted. Drawing in progress...`,
     });
 
     try {
-      const { entry, isWinner } = await placeLuckyDrawBet(selectedItem);
+      const { entry, isWinner } = await placeLuckyDrawBet(selectedItem, selectedMultiplier);
       
       setLastResult({
         selectedItem: entry.selectedItem,
@@ -110,11 +115,52 @@ const LuckyDraw = () => {
             <CardContent className="text-gray-300">
               <ol className="list-decimal list-inside space-y-2">
                 <li>Choose your lucky item from the selection below</li>
-                <li>Pay ₵2 to join the instant draw</li>
+                <li>Select your multiplier (1x to 10x) for higher stakes</li>
+                <li>Pay ₵{baseEntryPrice} × multiplier to join the instant draw</li>
                 <li>Watch the draw happen in real-time</li>
                 <li>If your item is drawn, you win based on the multiplier!</li>
                 <li>Higher payouts have lower odds - choose wisely!</li>
               </ol>
+            </CardContent>
+          </Card>
+
+          {/* Multiplier Selection */}
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+            <CardHeader>
+              <CardTitle className="text-white">Select Multiplier</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2 mb-4">
+                {multiplierOptions.map((multiplier) => (
+                  <button
+                    key={multiplier}
+                    onClick={() => setSelectedMultiplier(multiplier)}
+                    className={`
+                      p-3 rounded-lg text-center transition-all duration-200 font-semibold
+                      ${selectedMultiplier === multiplier
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                      }
+                    `}
+                  >
+                    {multiplier}x
+                  </button>
+                ))}
+              </div>
+              <div className="bg-white/10 rounded-lg p-4">
+                <div className="flex justify-between items-center text-white">
+                  <span>Entry Cost:</span>
+                  <span className="font-bold text-xl">₵{entryPrice}</span>
+                </div>
+                {selectedItem && (
+                  <div className="flex justify-between items-center text-green-400 mt-2">
+                    <span>Potential Win:</span>
+                    <span className="font-bold text-xl">
+                      ₵{(availableItems.find(item => item.emoji === selectedItem)?.basePayout || 0) * selectedMultiplier}
+                    </span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -140,7 +186,9 @@ const LuckyDraw = () => {
                     <div className="text-4xl mb-2">{item.emoji}</div>
                     <div className="text-white font-semibold text-sm">{item.name}</div>
                     <div className="text-white/70 text-xs">{item.odds}</div>
-                    <div className="text-green-400 text-xs font-semibold">Win: ₵{item.payout}</div>
+                    <div className="text-green-400 text-xs font-semibold">
+                      Win: ₵{item.basePayout * selectedMultiplier}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -149,7 +197,10 @@ const LuckyDraw = () => {
                 <div className="bg-white/10 rounded-lg p-4 mb-4">
                   <p className="text-white font-semibold">Selected: {selectedItem}</p>
                   <p className="text-green-400 text-sm">
-                    Win: ₵{availableItems.find(item => item.emoji === selectedItem)?.payout}
+                    Potential Win: ₵{(availableItems.find(item => item.emoji === selectedItem)?.basePayout || 0) * selectedMultiplier}
+                  </p>
+                  <p className="text-purple-400 text-sm">
+                    Multiplier: {selectedMultiplier}x
                   </p>
                 </div>
               )}
@@ -164,7 +215,7 @@ const LuckyDraw = () => {
                   disabled={!selectedItem || balance < entryPrice || isProcessing}
                   className="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 disabled:opacity-50"
                 >
-                  {isProcessing ? 'Drawing...' : 'Join Draw'}
+                  {isProcessing ? 'Drawing...' : `Join Draw - ₵${entryPrice}`}
                 </Button>
               </div>
             </CardContent>

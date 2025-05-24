@@ -40,7 +40,7 @@ interface DemoGameContextType {
   balance: number;
   isProcessing: boolean;
   buyJackpotTicket: (numbers: number[], multiplier?: number) => Promise<{ ticket: JackpotTicket; isWinner: boolean }>;
-  placeLuckyDrawBet: (item: string) => Promise<{ entry: LuckyDrawEntry; isWinner: boolean }>;
+  placeLuckyDrawBet: (item: string, multiplier?: number) => Promise<{ entry: LuckyDrawEntry; isWinner: boolean }>;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'status'>) => void;
   updateBalance: (amount: number) => void;
   nextDrawTime: Date;
@@ -206,7 +206,7 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
     return { ticket, isWinner };
   };
 
-  const placeLuckyDrawBet = async (selectedItem: string): Promise<{ entry: LuckyDrawEntry; isWinner: boolean }> => {
+  const placeLuckyDrawBet = async (selectedItem: string, multiplier: number = 1): Promise<{ entry: LuckyDrawEntry; isWinner: boolean }> => {
     setIsProcessing(true);
     
     // Simulate draw delay
@@ -215,27 +215,29 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
     const winningItem = selectRandomLuckyItem();
     const isWinner = selectedItem === winningItem;
     const itemData = luckyDrawItems.find(item => item.emoji === selectedItem);
-    const payout = isWinner ? (itemData?.payout || 0) : 0;
+    const basePayout = isWinner ? (itemData?.payout || 0) : 0;
+    const payout = basePayout * multiplier;
+    const entryPrice = 2 * multiplier;
     
     const entry: LuckyDrawEntry = {
       id: Date.now().toString(),
       selectedItem,
       winningItem,
       drawTime: new Date().toLocaleString(),
-      price: 2,
+      price: entryPrice,
       result: isWinner ? 'won' : 'lost',
       payout,
-      multiplier: itemData?.multiplier || '0x'
+      multiplier: `${multiplier}x`
     };
 
     setLuckyDrawEntries(prev => [entry, ...prev]);
     
     // Update balance and transactions
-    updateBalance(-2); // Deduct bet price
+    updateBalance(-entryPrice); // Deduct bet price (base * multiplier)
     addTransaction({
       type: 'bet',
-      amount: 2,
-      description: 'Lucky Draw Entry'
+      amount: entryPrice,
+      description: `Lucky Draw Entry (${multiplier}x)`
     });
 
     if (isWinner) {
@@ -243,7 +245,7 @@ export const DemoGameProvider = ({ children }: { children: ReactNode }) => {
       addTransaction({
         type: 'win',
         amount: payout,
-        description: `Lucky Draw Win - ${selectedItem}`
+        description: `Lucky Draw Win - ${selectedItem} (${multiplier}x)`
       });
     }
 
