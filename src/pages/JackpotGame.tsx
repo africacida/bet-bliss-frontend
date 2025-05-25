@@ -35,7 +35,7 @@ const JackpotGame = () => {
     { value: 10, label: '10x', color: 'from-red-500 to-red-600' }
   ];
 
-  const { toggleMusic, setVolume } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
+  const { toggleMusic, setVolume, playWinSound, playLossSound } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
 
   const handleToggleMusic = () => {
@@ -83,11 +83,13 @@ const JackpotGame = () => {
       setSelectedNumbers([]);
       
       if (isWinner) {
+        playWinSound();
         toast({
           title: "🎉 Congratulations!",
           description: `You won ₵${ticket.payout} with ${ticket.matchCount} matches (${selectedMultiplier}x)!`,
         });
       } else {
+        playLossSound();
         toast({
           title: "Better luck next time!",
           description: "No matches this round. Try again!",

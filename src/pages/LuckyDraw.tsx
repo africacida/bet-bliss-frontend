@@ -39,7 +39,7 @@ const LuckyDraw = () => {
 
   const multiplierOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-  const { toggleMusic, setVolume } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
+  const { toggleMusic, setVolume, playWinSound, playLossSound } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
 
   const handleToggleMusic = () => {
@@ -86,11 +86,13 @@ const LuckyDraw = () => {
       setSelectedItem('');
       
       if (isWinner) {
+        playWinSound();
         toast({
           title: "🎉 You Won!",
           description: `${selectedItem} was drawn! You won ₵${entry.payout}!`,
         });
       } else {
+        playLossSound();
         toast({
           title: "Not this time!",
           description: `${entry.winningItem} was drawn. Better luck next time!`,
