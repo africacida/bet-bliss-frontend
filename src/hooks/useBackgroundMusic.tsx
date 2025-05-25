@@ -7,87 +7,158 @@ interface UseBackgroundMusicProps {
 }
 
 export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgroundMusicProps = {}) => {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const winSoundRef = useRef<HTMLAudioElement | null>(null);
-  const lossSoundRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const backgroundOscillatorRef = useRef<OscillatorNode | null>(null);
+  const backgroundGainRef = useRef<GainNode | null>(null);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => {
-    // Create background music - casino/jackpot style
-    const audio = new Audio();
-    // Using a more casino-style background music base64
-    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmQcCT2JzeyvdAoFLGes6uuBYAoUdKzeQA0=';
-    audio.loop = true;
-    audio.volume = volume;
-    audioRef.current = audio;
-
-    // Create win sound effect
-    const winSound = new Audio();
-    winSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmQcCT2JzeyvdAoFLGes6uuBYAoUdKzeQA0=';
-    winSound.volume = 0.7;
-    winSoundRef.current = winSound;
-
-    // Create loss sound effect
-    const lossSound = new Audio();
-    lossSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmQcCT2JzeyvdAoFLGes6uuBYAoUdKzeQA0=';
-    lossSound.volume = 0.5;
-    lossSoundRef.current = lossSound;
-
+    // Initialize Audio Context
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (backgroundOscillatorRef.current) {
+        backgroundOscillatorRef.current.stop();
       }
-      winSoundRef.current = null;
-      lossSoundRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
     };
-  }, [volume]);
+  }, []);
+
+  const createBackgroundMusic = () => {
+    if (!audioContextRef.current || isPlayingRef.current) return;
+
+    const ctx = audioContextRef.current;
+    
+    // Create oscillator for background music
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    // Casino-style chord progression
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(220, ctx.currentTime); // A3
+    
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(volume * 0.1, ctx.currentTime + 0.5);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    backgroundOscillatorRef.current = oscillator;
+    backgroundGainRef.current = gainNode;
+    
+    // Create a simple melody pattern
+    let time = ctx.currentTime;
+    const notes = [220, 261.63, 293.66, 329.63, 261.63]; // A, C, D, E, C
+    
+    const playMelody = () => {
+      notes.forEach((freq, index) => {
+        oscillator.frequency.setValueAtTime(freq, time + index * 0.8);
+      });
+      
+      // Schedule next melody
+      setTimeout(() => {
+        if (isPlayingRef.current && oscillator === backgroundOscillatorRef.current) {
+          time = ctx.currentTime;
+          playMelody();
+        }
+      }, notes.length * 800);
+    };
+    
+    oscillator.start();
+    playMelody();
+    isPlayingRef.current = true;
+  };
+
+  const stopBackgroundMusic = () => {
+    if (backgroundOscillatorRef.current && isPlayingRef.current) {
+      backgroundOscillatorRef.current.stop();
+      backgroundOscillatorRef.current = null;
+      backgroundGainRef.current = null;
+      isPlayingRef.current = false;
+    }
+  };
 
   useEffect(() => {
-    if (!audioRef.current) return;
-
     if (isPlaying) {
-      audioRef.current.play().catch(() => {
-        console.log('Audio autoplay prevented');
-      });
+      createBackgroundMusic();
     } else {
-      audioRef.current.pause();
+      stopBackgroundMusic();
     }
-  }, [isPlaying]);
+  }, [isPlaying, volume]);
 
   const toggleMusic = () => {
-    if (!audioRef.current) return;
-    
-    if (audioRef.current.paused) {
-      audioRef.current.play().catch(() => {
-        console.log('Audio play prevented');
-      });
+    if (isPlayingRef.current) {
+      stopBackgroundMusic();
     } else {
-      audioRef.current.pause();
+      createBackgroundMusic();
     }
   };
 
   const setVolume = (newVolume: number) => {
-    if (audioRef.current) {
-      audioRef.current.volume = Math.max(0, Math.min(1, newVolume));
+    if (backgroundGainRef.current) {
+      backgroundGainRef.current.gain.setValueAtTime(
+        Math.max(0, Math.min(1, newVolume)) * 0.1, 
+        audioContextRef.current!.currentTime
+      );
     }
   };
 
   const playWinSound = () => {
-    if (winSoundRef.current) {
-      winSoundRef.current.currentTime = 0;
-      winSoundRef.current.play().catch(() => {
-        console.log('Win sound play prevented');
-      });
-    }
+    if (!audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    // Jackpot win sound - ascending notes
+    oscillator.type = 'triangle';
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+    
+    // Play celebratory ascending scale
+    const winNotes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    let time = ctx.currentTime;
+    
+    winNotes.forEach((freq, index) => {
+      oscillator.frequency.setValueAtTime(freq, time + index * 0.15);
+    });
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 1);
   };
 
   const playLossSound = () => {
-    if (lossSoundRef.current) {
-      lossSoundRef.current.currentTime = 0;
-      lossSoundRef.current.play().catch(() => {
-        console.log('Loss sound play prevented');
-      });
-    }
+    if (!audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    // Loss sound - descending notes
+    oscillator.type = 'sawtooth';
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+    
+    // Play descending "sad" sound
+    const lossNotes = [293.66, 246.94, 220, 196]; // D4, B3, A3, G3
+    let time = ctx.currentTime;
+    
+    lossNotes.forEach((freq, index) => {
+      oscillator.frequency.setValueAtTime(freq, time + index * 0.2);
+    });
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.8);
   };
 
   return {
@@ -95,6 +166,6 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
     setVolume,
     playWinSound,
     playLossSound,
-    isPlaying: audioRef.current ? !audioRef.current.paused : false
+    isPlaying: isPlayingRef.current
   };
 };
