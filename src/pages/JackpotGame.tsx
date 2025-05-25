@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoGame } from '@/contexts/DemoGameContext';
@@ -8,6 +7,8 @@ import NumberSelector from '@/components/NumberSelector';
 import CountdownTimer from '@/components/CountdownTimer';
 import JackpotResultModal from '@/components/JackpotResultModal';
 import { toast } from '@/hooks/use-toast';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { Volume2, VolumeX } from 'lucide-react';
 
 const JackpotGame = () => {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
@@ -33,6 +34,14 @@ const JackpotGame = () => {
     { value: 5, label: '5x', color: 'from-yellow-500 to-yellow-600' },
     { value: 10, label: '10x', color: 'from-red-500 to-red-600' }
   ];
+
+  const { toggleMusic, setVolume } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+
+  const handleToggleMusic = () => {
+    toggleMusic();
+    setIsMusicPlaying(!isMusicPlaying);
+  };
 
   const handleBuyTicket = async () => {
     if (selectedNumbers.length !== 6) {
@@ -96,9 +105,19 @@ const JackpotGame = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">🎰 Jackpot Lottery</h1>
-        <p className="text-gray-300">Pick 6 numbers from 1-49 and win the jackpot!</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">🎰 Jackpot Lottery</h1>
+          <p className="text-gray-300">Pick 6 numbers and win up to ₵{(50000 * selectedMultiplier).toLocaleString()}!</p>
+        </div>
+        <Button
+          onClick={handleToggleMusic}
+          variant="outline"
+          size="sm"
+          className="border-white/20 text-white hover:bg-white/10"
+        >
+          {isMusicPlaying ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -12,6 +13,7 @@ import JackpotPage from '@/pages/JackpotPage';
 import LuckyDrawPage from '@/pages/LuckyDrawPage';
 import JackpotGame from '@/pages/JackpotGame';
 import LuckyDraw from '@/pages/LuckyDraw';
+import SettingsPage from '@/pages/SettingsPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GameProvider } from '@/contexts/GameContext';
 import { Toaster } from "@/components/ui/toaster"
@@ -35,6 +37,7 @@ function App() {
                   <Route path="lucky-history" element={<LuckyHistoryPage />} />
                   <Route path="jackpot" element={<JackpotGame />} />
                   <Route path="lucky-draw" element={<LuckyDraw />} />
+                  <Route path="settings" element={<SettingsPage />} />
                   <Route path="jackpot-old" element={<JackpotPage />} />
                   <Route path="lucky-draw-old" element={<LuckyDrawPage />} />
                 </Route>

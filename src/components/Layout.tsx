@@ -39,6 +39,9 @@ const Layout = () => {
                 <Link to="/my-tickets" className="text-white hover:text-green-400 transition-colors">
                   My Tickets
                 </Link>
+                <Link to="/settings" className="text-white hover:text-green-400 transition-colors">
+                  Settings
+                </Link>
                 <div className="text-green-400 font-semibold">
                   ₵{user?.balance.toFixed(2)}
                 </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoGame } from '@/contexts/DemoGameContext';
@@ -7,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import CountdownTimer from '@/components/CountdownTimer';
 import LuckyDrawResultModal from '@/components/LuckyDrawResultModal';
 import { toast } from '@/hooks/use-toast';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { Volume2, VolumeX } from 'lucide-react';
 
 const LuckyDraw = () => {
   const [selectedItem, setSelectedItem] = useState<string>('');
@@ -37,6 +38,14 @@ const LuckyDraw = () => {
   ];
 
   const multiplierOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const { toggleMusic, setVolume } = useBackgroundMusic({ isPlaying: true, volume: 0.2 });
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+
+  const handleToggleMusic = () => {
+    toggleMusic();
+    setIsMusicPlaying(!isMusicPlaying);
+  };
 
   const handleJoinDraw = async () => {
     if (!selectedItem) {
@@ -99,9 +108,19 @@ const LuckyDraw = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">🎮 Real-Time Lucky Draw</h1>
-        <p className="text-gray-300">Pick your lucky item and win instantly! Draws every minute.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">🎮 Real-Time Lucky Draw</h1>
+          <p className="text-gray-300">Pick your lucky item and win instantly! Draws every minute.</p>
+        </div>
+        <Button
+          onClick={handleToggleMusic}
+          variant="outline"
+          size="sm"
+          className="border-white/20 text-white hover:bg-white/10"
+        >
+          {isMusicPlaying ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
