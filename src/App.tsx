@@ -14,6 +14,7 @@ import LuckyDrawPage from '@/pages/LuckyDrawPage';
 import JackpotGame from '@/pages/JackpotGame';
 import LuckyDraw from '@/pages/LuckyDraw';
 import SettingsPage from '@/pages/SettingsPage';
+import ProfilePage from '@/pages/ProfilePage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GameProvider } from '@/contexts/GameContext';
 import { Toaster } from "@/components/ui/toaster"
@@ -38,6 +39,7 @@ function App() {
                   <Route path="jackpot" element={<JackpotGame />} />
                   <Route path="lucky-draw" element={<LuckyDraw />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
                   <Route path="jackpot-old" element={<JackpotPage />} />
                   <Route path="lucky-draw-old" element={<LuckyDrawPage />} />
                 </Route>
