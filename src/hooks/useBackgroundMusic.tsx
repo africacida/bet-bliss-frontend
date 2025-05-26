@@ -11,11 +11,9 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
   const backgroundOscillatorRef = useRef<OscillatorNode | null>(null);
   const backgroundGainRef = useRef<GainNode | null>(null);
   const isPlayingRef = useRef(false);
+  const melodyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Initialize Audio Context
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
     return () => {
       if (backgroundOscillatorRef.current) {
         backgroundOscillatorRef.current.stop();
@@ -23,52 +21,94 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      if (melodyTimeoutRef.current) {
+        clearTimeout(melodyTimeoutRef.current);
+      }
     };
   }, []);
 
-  const createBackgroundMusic = () => {
-    if (!audioContextRef.current || isPlayingRef.current) return;
+  const initAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioContextRef.current;
+  };
 
-    const ctx = audioContextRef.current;
+  const createBackgroundMusic = async () => {
+    if (isPlayingRef.current) return;
+
+    const ctx = initAudioContext();
     
-    // Create oscillator for background music
-    const oscillator = ctx.createOscillator();
+    // Resume context if suspended (required for autoplay policy)
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    
+    // Create a more complex casino-style background music
+    const oscillator1 = ctx.createOscillator();
+    const oscillator2 = ctx.createOscillator();
     const gainNode = ctx.createGain();
+    const filterNode = ctx.createBiquadFilter();
     
-    // Casino-style chord progression
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(220, ctx.currentTime); // A3
+    // Set up filter for a warmer sound
+    filterNode.type = 'lowpass';
+    filterNode.frequency.setValueAtTime(800, ctx.currentTime);
     
+    // Main melody oscillator
+    oscillator1.type = 'sine';
+    oscillator1.frequency.setValueAtTime(261.63, ctx.currentTime); // C4
+    
+    // Harmony oscillator
+    oscillator2.type = 'triangle';
+    oscillator2.frequency.setValueAtTime(329.63, ctx.currentTime); // E4
+    
+    // Set volume (make it more audible)
     gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(volume * 0.1, ctx.currentTime + 0.5);
+    gainNode.gain.exponentialRampToValueAtTime(volume * 0.4, ctx.currentTime + 0.5);
     
-    oscillator.connect(gainNode);
+    // Connect nodes
+    oscillator1.connect(filterNode);
+    oscillator2.connect(filterNode);
+    filterNode.connect(gainNode);
     gainNode.connect(ctx.destination);
     
-    backgroundOscillatorRef.current = oscillator;
+    backgroundOscillatorRef.current = oscillator1;
     backgroundGainRef.current = gainNode;
     
-    // Create a simple melody pattern
-    let time = ctx.currentTime;
-    const notes = [220, 261.63, 293.66, 329.63, 261.63]; // A, C, D, E, C
+    // Casino chord progression (C - F - G - C)
+    const chordProgression = [
+      { note1: 261.63, note2: 329.63 }, // C Major
+      { note1: 349.23, note2: 440.00 }, // F Major  
+      { note1: 392.00, note2: 493.88 }, // G Major
+      { note1: 261.63, note2: 329.63 }, // C Major
+    ];
     
-    const playMelody = () => {
-      notes.forEach((freq, index) => {
-        oscillator.frequency.setValueAtTime(freq, time + index * 0.8);
+    const playChordProgression = () => {
+      let time = ctx.currentTime;
+      const chordDuration = 2; // 2 seconds per chord
+      
+      chordProgression.forEach((chord, index) => {
+        const chordTime = time + (index * chordDuration);
+        oscillator1.frequency.setValueAtTime(chord.note1, chordTime);
+        oscillator2.frequency.setValueAtTime(chord.note2, chordTime);
       });
       
-      // Schedule next melody
-      setTimeout(() => {
-        if (isPlayingRef.current && oscillator === backgroundOscillatorRef.current) {
-          time = ctx.currentTime;
-          playMelody();
-        }
-      }, notes.length * 800);
+      // Schedule next progression
+      if (isPlayingRef.current) {
+        melodyTimeoutRef.current = setTimeout(() => {
+          if (isPlayingRef.current && oscillator1 === backgroundOscillatorRef.current) {
+            playChordProgression();
+          }
+        }, chordProgression.length * chordDuration * 1000);
+      }
     };
     
-    oscillator.start();
-    playMelody();
+    oscillator1.start();
+    oscillator2.start();
+    playChordProgression();
     isPlayingRef.current = true;
+    
+    console.log('Background music started playing');
   };
 
   const stopBackgroundMusic = () => {
@@ -77,6 +117,13 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
       backgroundOscillatorRef.current = null;
       backgroundGainRef.current = null;
       isPlayingRef.current = false;
+      
+      if (melodyTimeoutRef.current) {
+        clearTimeout(melodyTimeoutRef.current);
+        melodyTimeoutRef.current = null;
+      }
+      
+      console.log('Background music stopped');
     }
   };
 
@@ -88,38 +135,41 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
     }
   }, [isPlaying, volume]);
 
-  const toggleMusic = () => {
+  const toggleMusic = async () => {
     if (isPlayingRef.current) {
       stopBackgroundMusic();
     } else {
-      createBackgroundMusic();
+      await createBackgroundMusic();
     }
   };
 
   const setVolume = (newVolume: number) => {
-    if (backgroundGainRef.current) {
+    if (backgroundGainRef.current && audioContextRef.current) {
+      const clampedVolume = Math.max(0, Math.min(1, newVolume));
       backgroundGainRef.current.gain.setValueAtTime(
-        Math.max(0, Math.min(1, newVolume)) * 0.1, 
-        audioContextRef.current!.currentTime
+        clampedVolume * 0.4, 
+        audioContextRef.current.currentTime
       );
     }
   };
 
-  const playWinSound = () => {
-    if (!audioContextRef.current) return;
+  const playWinSound = async () => {
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     
-    const ctx = audioContextRef.current;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
-    // Jackpot win sound - ascending notes
+    // Jackpot win sound - celebratory ascending notes
     oscillator.type = 'triangle';
     gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.1);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+    gainNode.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
     
     // Play celebratory ascending scale
-    const winNotes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const winNotes = [523.25, 659.25, 783.99, 1046.5, 1318.5]; // C5, E5, G5, C6, E6
     let time = ctx.currentTime;
     
     winNotes.forEach((freq, index) => {
@@ -130,35 +180,41 @@ export const useBackgroundMusic = ({ isPlaying = true, volume = 0.3 }: UseBackgr
     gainNode.connect(ctx.destination);
     
     oscillator.start();
-    oscillator.stop(ctx.currentTime + 1);
+    oscillator.stop(ctx.currentTime + 1.5);
+    
+    console.log('Win sound played');
   };
 
-  const playLossSound = () => {
-    if (!audioContextRef.current) return;
+  const playLossSound = async () => {
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     
-    const ctx = audioContextRef.current;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
-    // Loss sound - descending notes
+    // Loss sound - descending "disappointed" notes
     oscillator.type = 'sawtooth';
     gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.1);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+    gainNode.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
     
     // Play descending "sad" sound
-    const lossNotes = [293.66, 246.94, 220, 196]; // D4, B3, A3, G3
+    const lossNotes = [392.00, 349.23, 293.66, 246.94]; // G4, F4, D4, B3
     let time = ctx.currentTime;
     
     lossNotes.forEach((freq, index) => {
-      oscillator.frequency.setValueAtTime(freq, time + index * 0.2);
+      oscillator.frequency.setValueAtTime(freq, time + index * 0.3);
     });
     
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
     
     oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.8);
+    oscillator.stop(ctx.currentTime + 1.2);
+    
+    console.log('Loss sound played');
   };
 
   return {
