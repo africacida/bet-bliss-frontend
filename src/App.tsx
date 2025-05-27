@@ -20,6 +20,10 @@ import AdminLogin from '@/pages/AdminLogin';
 import AdminDashboardMain from '@/pages/admin/AdminDashboardMain';
 import JackpotManager from '@/pages/admin/JackpotManager';
 import LuckyDrawManager from '@/pages/admin/LuckyDrawManager';
+import UsersManager from '@/pages/admin/UsersManager';
+import TransactionsManager from '@/pages/admin/TransactionsManager';
+import ReportsManager from '@/pages/admin/ReportsManager';
+import SettingsManager from '@/pages/admin/SettingsManager';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GameProvider } from '@/contexts/GameContext';
 import { Toaster } from "@/components/ui/toaster"
@@ -56,6 +60,10 @@ function App() {
                   <Route index element={<AdminDashboardMain />} />
                   <Route path="jackpot" element={<JackpotManager />} />
                   <Route path="lucky-draw" element={<LuckyDrawManager />} />
+                  <Route path="users" element={<UsersManager />} />
+                  <Route path="transactions" element={<TransactionsManager />} />
+                  <Route path="reports" element={<ReportsManager />} />
+                  <Route path="settings" element={<SettingsManager />} />
                 </Route>
               </Routes>
               <Toaster />
